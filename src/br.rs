@@ -24,6 +24,8 @@ struct Args {
     path: Option<PathBuf>,
     #[arg(short = 'n', long, value_name = "4")]
     threads: Option<u8>,
+    #[arg(short, long)]
+    force: bool,
     #[arg(long)]
     dry_run: bool,
 }
@@ -41,6 +43,7 @@ fn main() {
         .path
         .unwrap_or(current_dir().expect("failed to get current directory"));
     let dry_run = args.dry_run;
+    let force = args.force;
     let mut list = vec![];
     let mut stack = LinkedList::new();
     stack.push_front(dir);
@@ -104,14 +107,18 @@ fn main() {
         let br_path = path.parent().unwrap().join(format!("{filename}.br"));
         let compressed = read(br_path.clone()).ok();
         let operation = if let Some(compressed) = compressed {
-            let mut decompressed = Vec::with_capacity(uncompressed.len());
-            BrotliDecompress(&mut &*compressed, &mut decompressed).unwrap();
-            if decompressed.len() == uncompressed.len()
-                && hash(&uncompressed) == hash(&decompressed)
-            {
-                Operation::Noop
-            } else {
+            if force {
                 Operation::Update
+            } else {
+                let mut decompressed = Vec::with_capacity(uncompressed.len());
+                BrotliDecompress(&mut &*compressed, &mut decompressed).unwrap();
+                if decompressed.len() == uncompressed.len()
+                    && hash(&uncompressed) == hash(&decompressed)
+                {
+                    Operation::Noop
+                } else {
+                    Operation::Update
+                }
             }
         } else {
             Operation::Create
