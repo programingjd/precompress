@@ -10,7 +10,7 @@ default-features = false
 features = ["std", "derive", "help", "usage", "color"]
 
 [dependencies.brotli]
-version = "4.0"
+version = "6.0"
 default-features = false
 features = ["std", "disable-timer", "simd"]
 
