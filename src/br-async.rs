@@ -33,9 +33,9 @@ struct Args {
 fn main() {
     let t0 = Instant::now();
     let extensions: BTreeSet<&'static str> = BTreeSet::from_iter([
-        "html", "htm", "css", "js", "mjs", "cjs", "wasm", "json", "map", "geojson", "kml", "gpx",
-        "csv", "tsv", "txt", "md", "adoc", "glsl", "xml", "xsd", "xslt", "dtd", "manifest", "pbf",
-        "pdf", "svg", "ico", "jsonld", "gltf", "glb", "atom",
+        "html", "htm", "css", "js", "mjs", "cjs", "wasm", "json", "map", "ts", "geojson", "kml",
+        "gpx", "csv", "tsv", "txt", "md", "adoc", "glsl", "xml", "xsd", "xslt", "dtd", "manifest",
+        "pbf", "pdf", "svg", "ico", "jsonld", "gltf", "glb", "atom",
     ]);
     let extensions = Box::leak(Box::new(extensions));
     let args = Args::parse();
