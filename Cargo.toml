@@ -1,6 +1,6 @@
 [package]
-name = "precompress"
-version = "0.1.0"
+name = "precompress_static"
+version = "0.1.1"
 edition = "2021"
 rust-version = "1.80"
 authors = ["Jerome David <programingjd@gmail.com>"]
