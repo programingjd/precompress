@@ -1,8 +1,18 @@
 [package]
 name = "precompress"
 version = "0.1.0"
-authors = ["programingjd"]
 edition = "2021"
+rust-version = "1.80"
+authors = ["Jerome David <programingjd@gmail.com>"]
+categories = ["compression"]
+description = "Brotli pre-compression for http static content"
+keywords = ["static", "compression", "brotli"]
+license = "MIT"
+repository = "https://github.com/programingjd/precompress"
+include = [
+    "Cargo.toml", "src", "LICENSE", "README.md"
+]
+
 
 [dependencies.clap]
 version = "4.5"
@@ -15,13 +25,13 @@ default-features = false
 features = ["std", "disable-timer", "simd"]
 
 [dependencies.highway]
-version = "1.1"
+version = "1.2"
 default-features = false
 features = []
 
 [dependencies.tokio]
 optional = true
-version = "1.37"
+version = "1.39"
 default-features = false
 features = ["fs", "rt-multi-thread", "io-util"]
 
@@ -35,6 +45,9 @@ features = []
 default = ["sync"]
 sync = ["dep:rayon"]
 async = ["dep:tokio"]
+
+[lib]
+path = "src/lib.rs"
 
 [[bin]]
 name = "br"

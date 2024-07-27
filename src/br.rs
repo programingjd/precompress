@@ -1,15 +1,14 @@
-use brotli::enc::BrotliEncoderParams;
-use brotli::{BrotliCompress, BrotliDecompress};
+use crate::op::Operation;
+use crate::sync::compress;
 use clap::Parser;
-use highway::{HighwayHash, HighwayHasher, Key};
-use rayon::prelude::*;
-use rayon::ThreadPoolBuilder;
-use std::collections::{BTreeSet, LinkedList};
 use std::env::current_dir;
-use std::fs::{read, read_dir, write};
-use std::io::{copy, sink};
 use std::path::PathBuf;
 use std::time::Instant;
+
+mod ext;
+mod hash;
+mod op;
+mod sync;
 
 #[derive(Parser, Debug)]
 #[command(
@@ -31,149 +30,28 @@ struct Args {
 }
 
 fn main() {
-    let t0 = Instant::now();
-    let extensions: BTreeSet<&'static str> = BTreeSet::from_iter([
-        "html", "htm", "css", "js", "mjs", "cjs", "wasm", "json", "map", "ts", "geojson", "kml",
-        "gpx", "csv", "tsv", "txt", "md", "adoc", "glsl", "xml", "xsd", "xslt", "dtd", "manifest",
-        "pbf", "pdf", "svg", "ico", "jsonld", "gltf", "glb", "atom",
-    ]);
-    let extensions = Box::leak(Box::new(extensions));
     let args = Args::parse();
+    let t0 = Instant::now();
     let dir = args
         .path
         .unwrap_or(current_dir().expect("failed to get current directory"));
     let dry_run = args.dry_run;
     let force = args.force;
-    let mut list = vec![];
-    let mut stack = LinkedList::new();
-    stack.push_front(dir);
-    while let Some(ref path) = stack.pop_front() {
-        let mut entries = read_dir(path).unwrap_or_else(|e| {
-            panic!(
-                "failed to read directory \"{}\": {e:?}",
-                path.to_string_lossy()
-            )
-        });
-        while let Some(entry) = entries.next() {
-            let entry = entry.unwrap_or_else(|e| {
-                panic!(
-                    "failed to read directory \"{}\": {e:?}",
-                    path.to_string_lossy()
-                )
-            });
-            let filename = entry.file_name().into_string().unwrap_or_else(|e| {
-                panic!(
-                    "failed to read file name \"{}\": {e:?}",
-                    entry.path().to_string_lossy()
-                )
-            });
-            if filename.starts_with('.') {
-                continue;
-            }
-            if entry
-                .metadata()
-                .unwrap_or_else(|e| {
-                    panic!(
-                        "failed to read metadata of \"{}\": {e:?}",
-                        entry.path().to_string_lossy()
-                    )
-                })
-                .is_dir()
-            {
-                stack.push_back(entry.path());
-            } else {
-                if filename.ends_with(".br") {
-                    continue;
-                }
-                if let Some((_, extension)) = filename.rsplit_once('.') {
-                    if extensions.contains(extension) {
-                        list.push((filename, entry.path()));
-                    }
-                }
-            }
-        }
-    }
-    if let Some(n) = args.threads {
-        ThreadPoolBuilder::new()
-            .num_threads(n as usize)
-            .build_global()
-            .unwrap_or_else(|e| panic!("failed to create thread pool: {e:?}"));
-    }
-    list.into_par_iter().for_each(|it| {
-        let (filename, path) = it;
-        let uncompressed = read(&path).unwrap_or_else(|e| {
-            panic!("failed to read file \"{}\": {e:?}", path.to_string_lossy())
-        });
-        let br_path = path.parent().unwrap().join(format!("{filename}.br"));
-        let compressed = read(br_path.clone()).ok();
-        let operation = if let Some(compressed) = compressed {
-            if force {
-                Operation::Update
-            } else {
-                let mut decompressed = Vec::with_capacity(uncompressed.len());
-                BrotliDecompress(&mut &*compressed, &mut decompressed).unwrap();
-                if decompressed.len() == uncompressed.len()
-                    && hash(&uncompressed) == hash(&decompressed)
-                {
-                    Operation::Noop
-                } else {
-                    Operation::Update
-                }
-            }
-        } else {
-            Operation::Create
-        };
-        if operation != Operation::Noop {
-            let mut compressed = Vec::with_capacity(uncompressed.len() + 64);
-            let params = BrotliEncoderParams {
-                quality: 11,
-                size_hint: uncompressed.len(),
-                ..BrotliEncoderParams::default()
-            };
-            BrotliCompress(&mut &*uncompressed, &mut compressed, &params).unwrap_or_else(|e| {
-                panic!(
-                    "failed to compress file \"{}\": {e:?}",
-                    path.to_string_lossy()
-                )
-            });
-            if dry_run {
-                copy(&mut compressed.as_slice(), &mut sink()).unwrap_or_else(|e| {
-                    panic!(
-                        "failed to write file \"{}\": {e:?}",
-                        br_path.to_string_lossy()
-                    )
-                });
-            } else {
-                write(&br_path, compressed).unwrap_or_else(|e| {
-                    panic!(
-                        "failed to write file \"{}\": {e:?}",
-                        br_path.to_string_lossy()
-                    )
-                });
-            };
-        }
-        match operation {
+    compress(
+        dir,
+        dry_run,
+        force,
+        args.threads,
+        |path: &PathBuf, op: Operation| match op {
             Operation::Create => {
-                println!("+{}", br_path.to_str().unwrap());
+                println!("+{}", path.to_str().unwrap());
             }
             Operation::Update => {
-                println!("*{}", br_path.to_str().unwrap());
+                println!("*{}", path.to_str().unwrap());
             }
             _ => {}
-        }
-    });
+        },
+    )
+    .unwrap_or_else(|e| panic!("{}", e));
     println!("done in {:?}", Instant::now().duration_since(t0));
-}
-
-#[derive(PartialEq)]
-enum Operation {
-    Update,
-    Create,
-    Noop,
-}
-
-const VERSION: [u64; 4] = [2024u64, 4u64, 6u64, 1u64];
-fn hash(data: &[u8]) -> String {
-    let hash = HighwayHasher::new(Key(VERSION)).hash128(data);
-    format!("{:0>16x}{:0>16x}", hash[0], hash[1])
 }
