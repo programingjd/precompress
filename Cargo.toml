@@ -58,3 +58,7 @@ required-features = ["sync"]
 name = "br-async"
 path = "src/br-async.rs"
 required-features = ["async"]
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
