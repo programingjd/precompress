@@ -3,8 +3,8 @@ use crate::hash::hash;
 use crate::op::Operation;
 use brotli::enc::BrotliEncoderParams;
 use brotli::{BrotliCompress, BrotliDecompress};
-use rayon::prelude::*;
 use rayon::ThreadPoolBuilder;
+use rayon::prelude::*;
 use std::collections::LinkedList;
 use std::fs::{read, read_dir, write};
 use std::io::{copy, sink};
@@ -60,10 +60,10 @@ pub fn compress(
                 if filename.ends_with(".br") {
                     continue;
                 }
-                if let Some((_, extension)) = filename.rsplit_once('.') {
-                    if extensions.contains(extension) {
-                        list.push((filename, entry.path()));
-                    }
+                if let Some((_, extension)) = filename.rsplit_once('.')
+                    && extensions.contains(extension)
+                {
+                    list.push((filename, entry.path()));
                 }
             }
         }
