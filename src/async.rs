@@ -1,6 +1,6 @@
+use crate::Operation;
 use crate::ext::EXTENSIONS;
 use crate::hash::hash;
-use crate::Operation;
 use brotli::enc::BrotliEncoderParams;
 use brotli::{BrotliCompress, BrotliDecompress};
 use std::collections::LinkedList;
@@ -9,7 +9,7 @@ use std::path::{Path, PathBuf};
 use tokio::fs::{read, read_dir, write};
 use tokio::io::{copy, sink};
 use tokio::runtime::Builder;
-use tokio::task::{spawn_blocking, JoinSet};
+use tokio::task::{JoinSet, spawn_blocking};
 
 pub fn compress(
     dir: PathBuf,

@@ -1,6 +1,6 @@
 [package]
 name = "precompress_static"
-version = "0.1.6"
+version = "0.1.7"
 edition = "2024"
 authors = ["Jerome David <programingjd@gmail.com>"]
 categories = ["compression"]
@@ -19,7 +19,9 @@ default-features = false
 features = ["std", "derive", "help", "usage", "color"]
 
 [dependencies.brotli]
-version = "8.0"
+git = "https://github.com/programingjd/rust-brotli.git"
+rev = "319ad14"
+#version = "8.0"
 default-features = false
 features = ["std", "disable-timer", "simd", "disallow_large_window_size", "no-stdlib-ffi-binding"]
 
@@ -30,7 +32,7 @@ features = []
 
 [dependencies.tokio]
 optional = true
-version = "1.48"
+version = "1.50"
 default-features = false
 features = ["fs", "rt-multi-thread", "io-util"]
 
