@@ -1,6 +1,6 @@
 [package]
 name = "precompress_static"
-version = "0.1.8"
+version = "0.1.9"
 edition = "2024"
 authors = ["Jerome David <programingjd@gmail.com>"]
 categories = ["compression"]
@@ -32,13 +32,13 @@ features = []
 
 [dependencies.tokio]
 optional = true
-version = "1.51"
+version = "1.52"
 default-features = false
 features = ["fs", "rt-multi-thread", "io-util"]
 
 [dependencies.rayon]
 optional = true
-version = "1.11"
+version = "1.12"
 default-features = false
 features = []
 
